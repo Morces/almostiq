@@ -91,7 +91,7 @@ export default function DashboardPage() {
       {/* Title greeting */}
       <section className="flex flex-col gap-1.5">
         <h1 className="text-3xl font-extrabold tracking-tight">
-          Good Morning, {user?.name || "Moses"}.
+          Hello, {user?.name || "Moses"}.
         </h1>
         <p className="text-xs text-on-surface-variant leading-relaxed">
           Today's weather is creating <span className="text-secondary font-bold">{opportunitiesCount} actionable opportunities</span> across your active sectors.
