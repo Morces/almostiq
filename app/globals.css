@@ -1,0 +1,246 @@
+@import "tailwindcss";
+
+:root {
+  /* Default dark mode variables (matches screenshots) */
+  --background: #080c14;
+  --on-background: #f8fafc;
+  --surface: #0a0e17;
+  --surface-dim: #080c14;
+  --surface-bright: #1c2538;
+  --surface-container-lowest: #04060a;
+  --surface-container-low: #0a0e17;
+  --surface-container: #0d1321;
+  --surface-container-high: #121a2d;
+  --surface-container-highest: #1a253f;
+  --on-surface: #f8fafc;
+  --on-surface-variant: #94a3b8;
+  --inverse-surface: #f8fafc;
+  --inverse-on-surface: #0a0e17;
+  --outline: #475569;
+  --outline-variant: #1e293b;
+  --surface-tint: #a8c7fa;
+  
+  --primary: #a8c7fa;
+  --on-primary: #002f64;
+  --primary-container: #2563eb;
+  --on-primary-container: #dbeafe;
+  --inverse-primary: #3b82f6;
+  
+  --secondary: #93ffde;
+  --on-secondary: #00382b;
+  --secondary-container: #00e9bd;
+  --on-secondary-container: #006450;
+  
+  --tertiary: #b4c8e4;
+  --on-tertiary: #1e3248;
+  --tertiary-container: #7f92ac;
+  --on-tertiary-container: #172b41;
+  
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+  
+  --surface-variant: #1e293b;
+  --surface-elevated: #0a0e17;
+  --surface-stroke: #161f30;
+  --text-muted: #64748b;
+  --glass-fill: rgba(13, 19, 33, 0.75);
+}
+
+.light {
+  /* Light mode fallback variables */
+  --background: #f8f9fd;
+  --on-background: #0f131d;
+  --surface: #ffffff;
+  --surface-dim: #f1f3f9;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f6fa;
+  --surface-container: #eff1f7;
+  --surface-container-high: #e9ebf2;
+  --surface-container-highest: #e3e5ec;
+  --on-surface: #0f131d;
+  --on-surface-variant: #414753;
+  --inverse-surface: #0f131d;
+  --inverse-on-surface: #dfe2f1;
+  --outline: #717784;
+  --outline-variant: #c1c6d6;
+  --surface-tint: #005db8;
+  
+  --primary: #005db8;
+  --on-primary: #ffffff;
+  --primary-container: #d6e3ff;
+  --on-primary-container: #001b3e;
+  --inverse-primary: #aac7ff;
+  
+  --secondary: #006a54;
+  --on-secondary: #ffffff;
+  --secondary-container: #7effda;
+  --on-secondary-container: #002018;
+  
+  --tertiary: #35485f;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #d1e4ff;
+  --on-tertiary-container: #071d32;
+  
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+  
+  --surface-variant: #e1e2ec;
+  --surface-elevated: #ffffff;
+  --surface-stroke: #e2e8f0;
+  --text-muted: #64748b;
+  --glass-fill: rgba(255, 255, 255, 0.7);
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-surface-tint: var(--surface-tint);
+
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-inverse-primary: var(--inverse-primary);
+
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+
+  --color-surface-variant: var(--surface-variant);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-stroke: var(--surface-stroke);
+  --color-text-muted: var(--text-muted);
+  --color-glass-fill: var(--glass-fill);
+
+  /* Spacing */
+  --spacing-unit: 4px;
+  --spacing-gutter: 24px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-mobile: 20px;
+  --spacing-container-max-width: 1440px;
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-default: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-mono), monospace;
+}
+
+@utility text-display-lg {
+  font-family: var(--font-sans);
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+@utility text-display-lg-mobile {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@utility text-headline-xl {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+@utility text-headline-md {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+@utility text-body-lg {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+@utility text-body-md {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+@utility text-label-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.0;
+  letter-spacing: 0.05em;
+}
+
+/* Custom background patterns and animations */
+@utility bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 1.5rem 1.5rem;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 40s linear infinite;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--on-background);
+  font-family: var(--font-sans);
+}
