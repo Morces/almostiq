@@ -87,7 +87,6 @@ export default function DashboardLayout({
     { href: "/dashboard/ai", label: "AI Assistant", icon: Cpu },
     { href: "/dashboard/recommendations", label: "Recommendations", icon: Bookmark },
     { href: "/dashboard/history", label: "History", icon: History },
-    { href: "/onboarding", label: "Industries", icon: Building },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ];
 

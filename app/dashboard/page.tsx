@@ -11,13 +11,17 @@ import {
   CheckCircle,
   ShieldAlert,
   ArrowUpRight,
-  ChevronRight
+  ChevronRight,
+  Check
 } from "lucide-react";
-import { getCurrentUser, fetchUserProfile } from "@/lib/state";
+import { getCurrentUser, fetchUserProfile, fetchRecommendations } from "@/lib/state";
 import { UserProfile } from "@/types/recommendation";
 
 export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [recs, setRecs] = useState<any[]>([]);
+  const [executedIds, setExecutedIds] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const localUser = getCurrentUser();
@@ -28,12 +32,58 @@ export default function DashboardPage() {
         setUser(profile);
       }
     });
+
+    fetchRecommendations(localUser.id).then((data) => {
+      if (data) {
+        setRecs(data);
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (toastMessage) {
+      timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   const activeIndustries = user?.industries || ["laundry", "logistics", "events"];
   const opportunitiesCount = activeIndustries.filter((ind) => 
     ["laundry", "logistics", "events"].includes(ind)
   ).length;
+
+  // Real Metric Calculations
+  const avgConfidence = recs.length > 0
+    ? `${(recs.reduce((sum, r) => sum + (r.confidence || 0), 0) / recs.length).toFixed(1)}%`
+    : "91.4%";
+
+  const latestRec = recs[0];
+  const riskLevel = latestRec?.weatherData 
+    ? latestRec.weatherData.windSpeed > 30 || latestRec.weatherData.rainChance > 50
+      ? "Level 7.5"
+      : latestRec.weatherData.windSpeed > 15 || latestRec.weatherData.rainChance > 20
+        ? "Level 3.2"
+        : "Level 1.2"
+    : "Level 3.2";
+
+  const riskLabel = latestRec?.weatherData
+    ? latestRec.weatherData.windSpeed > 30 || latestRec.weatherData.rainChance > 50
+      ? "High"
+      : latestRec.weatherData.windSpeed > 15 || latestRec.weatherData.rainChance > 20
+        ? "Moderate"
+        : "Low"
+    : "Moderate";
+
+  const riskBadgeColor = latestRec?.weatherData
+    ? latestRec.weatherData.windSpeed > 30 || latestRec.weatherData.rainChance > 50
+      ? "bg-error/15 text-error border-error/20"
+      : latestRec.weatherData.windSpeed > 15 || latestRec.weatherData.rainChance > 20
+        ? "bg-primary/10 text-primary border-primary/20"
+        : "bg-secondary/15 text-secondary border-secondary/20"
+    : "bg-primary/10 text-primary border-primary/20";
 
   return (
     <div className="bg-background text-on-background px-8 py-8 flex flex-col gap-8 w-full max-w-7xl mx-auto">
@@ -54,9 +104,9 @@ export default function DashboardPage() {
         <div className="p-4 rounded-lg border border-surface-stroke bg-surface-container-low flex flex-col gap-2 relative overflow-hidden">
           <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Weather Risk</span>
           <div className="flex items-end justify-between">
-            <span className="text-2xl font-black">Level 3.2</span>
-            <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded text-label-mono">
-              Moderate
+            <span className="text-2xl font-black">{riskLevel}</span>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded text-label-mono ${riskBadgeColor}`}>
+              {riskLabel}
             </span>
           </div>
         </div>
@@ -65,10 +115,12 @@ export default function DashboardPage() {
         <div className="p-4 rounded-lg border border-surface-stroke bg-surface-container-low flex flex-col gap-2 relative overflow-hidden">
           <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">AI Decisions Generated</span>
           <div className="flex items-end justify-between">
-            <span className="text-2xl font-black">1,420</span>
-            <span className="text-[9px] font-bold text-secondary bg-secondary/15 border border-secondary/20 px-2 py-0.5 rounded text-label-mono flex items-center gap-0.5">
-              +12%
-            </span>
+            <span className="text-2xl font-black">{recs.length}</span>
+            {recs.length > 0 && (
+              <span className="text-[9px] font-bold text-secondary bg-secondary/15 border border-secondary/20 px-2 py-0.5 rounded text-label-mono flex items-center gap-0.5">
+                Active
+              </span>
+            )}
           </div>
         </div>
 
@@ -76,7 +128,7 @@ export default function DashboardPage() {
         <div className="p-4 rounded-lg border border-surface-stroke bg-surface-container-low flex flex-col gap-2 relative overflow-hidden">
           <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Industries Connected</span>
           <div className="flex items-end justify-between">
-            <span className="text-2xl font-black">{user?.industries?.length || 2} Active</span>
+            <span className="text-2xl font-black">{activeIndustries.length} Active</span>
           </div>
         </div>
 
@@ -84,7 +136,7 @@ export default function DashboardPage() {
         <div className="p-4 rounded-lg border border-surface-stroke bg-surface-container-low flex flex-col gap-2 relative overflow-hidden">
           <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Avg Confidence Score</span>
           <div className="flex items-end justify-between">
-            <span className="text-2xl font-black">91.4%</span>
+            <span className="text-2xl font-black">{avgConfidence}</span>
           </div>
         </div>
       </section>
@@ -132,9 +184,24 @@ export default function DashboardPage() {
 
               {/* Buttons */}
               <div className="flex items-center gap-3 mt-6">
-                <button className="h-9 px-5 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow">
-                  Execute Plan
-                </button>
+                {executedIds.includes("laundry-plan") ? (
+                  <button
+                    disabled
+                    className="h-9 px-5 bg-emerald-600 text-white font-bold text-xs rounded-lg cursor-not-allowed opacity-90 flex items-center gap-1.5 shadow"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Executed
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setExecutedIds((prev) => [...prev, "laundry-plan"]);
+                      setToastMessage('⚡ Plan "Laundry Optimization" executed successfully. Dispatching commands...');
+                    }}
+                    className="h-9 px-5 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow"
+                  >
+                    Execute Plan
+                  </button>
+                )}
                 <Link
                   href="/dashboard/ai?industry=laundry"
                   className="h-9 px-5 border border-surface-stroke bg-surface-container-lowest text-on-surface hover:bg-surface-container hover:text-on-background text-xs font-bold rounded-lg transition-colors flex items-center"
@@ -237,9 +304,24 @@ export default function DashboardPage() {
 
               {/* Right Column Action */}
               <div className="shrink-0 flex items-center md:self-stretch">
-                <button className="h-10 px-6 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow self-center md:my-auto md:w-36">
-                  Prioritize Pickups
-                </button>
+                {executedIds.includes("logistics-plan") ? (
+                  <button
+                    disabled
+                    className="h-10 px-6 bg-emerald-600 text-white font-bold text-xs rounded-lg cursor-not-allowed opacity-90 flex items-center gap-1.5 shadow self-center md:my-auto md:w-36"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Executed
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setExecutedIds((prev) => [...prev, "logistics-plan"]);
+                      setToastMessage('⚡ Plan "Logistics Shift" executed successfully. Dispatching commands...');
+                    }}
+                    className="h-10 px-6 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow self-center md:my-auto md:w-36"
+                  >
+                    Prioritize Pickups
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -255,6 +337,21 @@ export default function DashboardPage() {
 
         </div>
       </section>
+
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-surface-container border border-surface-stroke text-on-surface p-4 rounded-xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 max-w-sm">
+          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <Sparkles className="h-4.5 w-4.5" />
+          </div>
+          <div className="flex-1 flex flex-col gap-0.5">
+            <span className="text-xs font-bold text-on-surface">Execution Dispatched</span>
+            <span className="text-[10px] text-on-surface-variant leading-tight">
+              {toastMessage}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Footer info */}
       <footer className="w-full border-t border-surface-stroke py-6 text-center text-[9px] text-text-muted font-bold tracking-widest text-label-mono mt-10">

@@ -60,3 +60,11 @@ export const clearHistory = mutation({
     }
   },
 });
+
+// Delete a single recommendation entry by document ID
+export const remove = mutation({
+  args: { id: v.id("recommendations") },
+  handler: async (ctx: any, args: any) => {
+    await ctx.db.delete(args.id);
+  },
+});

@@ -20,6 +20,7 @@ export const saveProfile = mutation({
     name: v.string(),
     email: v.string(),
     industries: v.array(v.string()),
+    location: v.optional(v.string()),
   },
   handler: async (ctx: any, args: any) => {
     const existing = await ctx.db
@@ -32,6 +33,7 @@ export const saveProfile = mutation({
         name: args.name,
         email: args.email,
         industries: args.industries,
+        location: args.location,
       });
       return existing._id;
     } else {
@@ -40,6 +42,7 @@ export const saveProfile = mutation({
         name: args.name,
         email: args.email,
         industries: args.industries,
+        location: args.location,
         createdAt: Date.now(),
       });
       return id;

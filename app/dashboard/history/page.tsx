@@ -15,7 +15,7 @@ import {
   CalendarDays,
   SlidersHorizontal
 } from "lucide-react";
-import { getRecommendations, deleteRecommendation, clearRecommendationHistory } from "@/lib/state";
+import { getCurrentUser, fetchRecommendations, deleteRecommendation, clearRecommendationHistory } from "@/lib/state";
 import { DecisionRecommendation } from "@/types/recommendation";
 import { getIndustryById } from "@/lib/industries";
 
@@ -25,6 +25,8 @@ export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [selectedRec, setSelectedRec] = useState<DecisionRecommendation | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -35,7 +37,12 @@ export default function HistoryPage() {
   }, [recs, search, industryFilter]);
 
   const loadHistory = () => {
-    setRecs(getRecommendations());
+    const localUser = getCurrentUser();
+    fetchRecommendations(localUser.id).then((data) => {
+      if (data) {
+        setRecs(data);
+      }
+    });
   };
 
   const filterHistory = () => {
@@ -59,17 +66,29 @@ export default function HistoryPage() {
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this decision log?")) {
-      deleteRecommendation(id);
-      loadHistory();
+    setDeleteTargetId(id);
+  };
+
+  const confirmSingleDelete = () => {
+    if (deleteTargetId) {
+      deleteRecommendation(deleteTargetId);
+      setTimeout(() => {
+        loadHistory();
+      }, 100);
+      setDeleteTargetId(null);
     }
   };
 
   const handleClearAll = () => {
-    if (confirm("Are you sure you want to clear ALL logged decision entries? This cannot be undone.")) {
-      clearRecommendationHistory();
+    setShowConfirmModal(true);
+  };
+
+  const confirmClearHistory = () => {
+    clearRecommendationHistory();
+    setTimeout(() => {
       loadHistory();
-    }
+    }, 100);
+    setShowConfirmModal(false);
   };
 
   const getIndustryIcon = (industryId: string) => {
@@ -325,6 +344,78 @@ export default function HistoryPage() {
                   className="h-10 px-6 bg-surface-container-high hover:bg-surface-container-highest border border-surface-stroke rounded-lg text-xs font-bold transition-colors"
                 >
                   Close Report
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Confirmation Modal */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md bg-surface-container-low border border-surface-stroke rounded-xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in zoom-in-95 duration-200">
+              {/* Danger Icon & Header */}
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-full bg-error/15 text-error flex items-center justify-center shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <h3 className="text-base font-bold text-on-background">Clear Decision Logs?</h3>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    This will permanently delete your entire decision history and clear all archived recommendation cards. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-3 mt-2">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="h-9 px-4 rounded-lg border border-surface-stroke bg-transparent text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClearHistory}
+                  className="h-9 px-4 rounded-lg bg-error text-white hover:bg-error-container font-semibold text-xs transition-colors shadow"
+                >
+                  Clear History
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Single Delete Confirmation Modal */}
+        {deleteTargetId !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-md bg-surface-container-low border border-surface-stroke rounded-xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in zoom-in-95 duration-200">
+              {/* Danger Icon & Header */}
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-full bg-error/15 text-error flex items-center justify-center shrink-0">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col gap-1.5 text-left">
+                  <h3 className="text-base font-bold text-on-background">Delete Decision Entry?</h3>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Are you sure you want to delete this decision log entry? This action is permanent and will remove it from the backend server audit trail.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-3 mt-2">
+                <button
+                  onClick={() => setDeleteTargetId(null)}
+                  className="h-9 px-4 rounded-lg border border-surface-stroke bg-transparent text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmSingleDelete}
+                  className="h-9 px-4 rounded-lg bg-error text-white hover:bg-error-container font-semibold text-xs transition-colors shadow"
+                >
+                  Delete Entry
                 </button>
               </div>
             </div>

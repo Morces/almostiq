@@ -18,7 +18,9 @@ import {
   Sparkles,
   ChevronRight,
   ShieldAlert,
-  Cloud
+  Cloud,
+  Check,
+  X
 } from "lucide-react";
 
 interface RecommendationCard {
@@ -40,10 +42,48 @@ interface RecommendationCard {
 import { getCurrentUser, fetchUserProfile } from "@/lib/state";
 import { UserProfile } from "@/types/recommendation";
 
+const getActionPlanSteps = (category: string) => {
+  switch (category) {
+    case "logistics":
+      return [
+        "Recalculate shipping ETAs for North Region shipments.",
+        "Notify freight dispatch of flooding threat on Interstate 5.",
+        "Re-route hazardous units via US-97 bypass route."
+      ];
+    case "solar":
+      return [
+        "Set solar inverter grid injection targets to peak power mode.",
+        "Discharge stored battery energy to grid between 13:00 and 15:00.",
+        "Log grid transmission credits inside financial dashboard."
+      ];
+    case "agriculture":
+      return [
+        "Send automated command to irrigator controller to pause current schedule.",
+        "Log natural precipitation volume into soil health record.",
+        "Reschedule next irrigation pass for 48 hours post-storm."
+      ];
+    case "events":
+      return [
+        "Mobilize wind mitigation team to secure main stage rigging structures.",
+        "Add structural tie-down anchors to dining marquees.",
+        "Alert security details of potential 35mph peak wind gusts."
+      ];
+    default:
+      return [
+        "Audit atmospheric condition impacts on operation.",
+        "Verify emergency protocols with facility manager.",
+        "Log advisory notification in regional report logs."
+      ];
+  }
+};
+
 export default function RecommendationsPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [selectedTab, setSelectedTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [executedIds, setExecutedIds] = useState<string[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [selectedRec, setSelectedRec] = useState<RecommendationCard | null>(null);
 
   useEffect(() => {
     const localUser = getCurrentUser();
@@ -55,6 +95,16 @@ export default function RecommendationsPage() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (toastMessage) {
+      timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   const activeIndustries = user?.industries || ["laundry", "logistics", "events"];
 
@@ -322,10 +372,28 @@ export default function RecommendationsPage() {
                     )}
 
                     <div className="flex items-center gap-3 ml-auto">
-                      <button className="h-9 px-5 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow">
-                        Execute Plan
-                      </button>
-                      <button className="h-9 px-4 border border-surface-stroke bg-surface-container-lowest text-on-surface hover:bg-surface-container hover:text-on-background text-xs font-bold rounded-lg transition-colors">
+                      {executedIds.includes(rec.id) ? (
+                        <button
+                          disabled
+                          className="h-9 px-5 bg-emerald-600 text-white font-bold text-xs rounded-lg cursor-not-allowed opacity-90 flex items-center gap-1.5 shadow"
+                        >
+                          <Check className="h-3.5 w-3.5" /> Executed
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setExecutedIds((prev) => [...prev, rec.id]);
+                            setToastMessage(`⚡ Plan "${rec.title}" executed successfully. Dispatching commands...`);
+                          }}
+                          className="h-9 px-5 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow"
+                        >
+                          Execute Plan
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedRec(rec)}
+                        className="h-9 px-4 border border-surface-stroke bg-surface-container-lowest text-on-surface hover:bg-surface-container hover:text-on-background text-xs font-bold rounded-lg transition-colors"
+                      >
                         View Details
                       </button>
                     </div>
@@ -337,6 +405,137 @@ export default function RecommendationsPage() {
         )}
 
       </main>
+
+      {/* View Details Custom Modal */}
+      {selectedRec && (() => {
+        const DetailIcon = selectedRec.categoryIcon;
+        const isAlreadyExecuted = executedIds.includes(selectedRec.id);
+        const steps = getActionPlanSteps(selectedRec.category);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-lg bg-surface-container-low border border-surface-stroke rounded-xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in zoom-in-95 duration-200">
+              
+              {/* Modal Close Button */}
+              <button 
+                onClick={() => setSelectedRec(null)}
+                className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              {/* Modal Header */}
+              <div className="flex flex-col gap-2 border-b border-surface-stroke/50 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-surface-stroke bg-surface-container-lowest text-on-surface">
+                    <DetailIcon className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-label-mono">
+                      {selectedRec.categoryLabel}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-secondary bg-secondary/15 px-2 py-0.5 rounded text-label-mono">
+                    {selectedRec.confidence}% Confidence
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-on-surface mt-1">
+                  {selectedRec.title}
+                </h3>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex flex-col gap-4 overflow-y-auto max-h-[350px] pr-1">
+                
+                {/* Weather Parameters Snapshot */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Atmospheric Snapshot</span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRec.tags.map((tag, idx) => {
+                      const TagIcon = tag.icon;
+                      return (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-surface-stroke text-[10.5px] font-bold text-on-surface text-label-mono"
+                        >
+                          <TagIcon className="h-3.5 w-3.5 text-text-muted" />
+                          {tag.label}: {tag.value}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Reasoning Panel */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Reasoning</span>
+                  <p className="text-xs text-on-surface-variant leading-relaxed bg-surface-container border border-surface-stroke/50 rounded-lg p-3">
+                    {selectedRec.reasoning}
+                  </p>
+                </div>
+
+                {/* Simulated Steps */}
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider text-label-mono">Proposed Operational Steps</span>
+                  <div className="flex flex-col gap-2">
+                    {steps.map((step, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 text-xs text-on-surface">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-[10px]">
+                          {idx + 1}
+                        </div>
+                        <span className="leading-normal pt-0.5">{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 border-t border-surface-stroke/50 pt-4">
+                <button
+                  onClick={() => setSelectedRec(null)}
+                  className="h-10 px-5 border border-surface-stroke bg-surface-container-lowest text-on-surface hover:bg-surface-container hover:text-on-background text-xs font-bold rounded-lg transition-colors"
+                >
+                  Close Report
+                </button>
+                {isAlreadyExecuted ? (
+                  <button
+                    disabled
+                    className="h-10 px-6 bg-emerald-600 text-white font-bold text-xs rounded-lg cursor-not-allowed opacity-90 flex items-center gap-1.5 shadow"
+                  >
+                    <Check className="h-3.5 w-3.5" /> Executed
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setExecutedIds((prev) => [...prev, selectedRec.id]);
+                      setToastMessage(`⚡ Plan "${selectedRec.title}" executed successfully. Dispatching commands...`);
+                      setSelectedRec(null); // Close modal on execute
+                    }}
+                    className="h-10 px-6 bg-primary text-on-primary font-bold text-xs rounded-lg hover:bg-primary-container transition-colors shadow"
+                  >
+                    Execute Plan
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-surface-container border border-surface-stroke text-on-surface p-4 rounded-xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 duration-300 max-w-sm">
+          <div className="flex-shrink-0 h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+            <Sparkles className="h-4.5 w-4.5" />
+          </div>
+          <div className="flex-1 flex flex-col gap-0.5">
+            <span className="text-xs font-bold text-on-surface">Execution Dispatched</span>
+            <span className="text-[10px] text-on-surface-variant leading-tight">
+              {toastMessage}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="w-full text-center text-[9px] text-text-muted font-bold tracking-widest text-label-mono mt-12">

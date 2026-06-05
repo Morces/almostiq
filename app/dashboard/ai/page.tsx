@@ -19,7 +19,7 @@ import {
   Loader2,
   Sparkles
 } from "lucide-react";
-import { saveRecommendation, getCurrentUser } from "@/lib/state";
+import { saveRecommendation, getCurrentUser, fetchChats, saveChatMessage } from "@/lib/state";
 import { DecisionRecommendation } from "@/types/recommendation";
 
 interface ChatMessage {
@@ -46,13 +46,27 @@ function AiConsoleContent() {
   
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "init-bot",
-      sender: "assistant",
-      text: "Hello, Moses. I have synthesized current atmospheric parameters across Seattle, Nairobi, and London. What operation planning query would you like to execute?"
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  useEffect(() => {
+    const user = getCurrentUser();
+    fetchChats(user.id).then((history) => {
+      if (history && history.length > 0) {
+        setMessages(history);
+      } else {
+        const initGreeting = "Hello, Moses. I have synthesized current atmospheric parameters across Seattle, Nairobi, and London. What operation planning query would you like to execute?";
+        saveChatMessage(user.id, "assistant", initGreeting).then((msgId) => {
+          setMessages([
+            {
+              id: msgId || "init-bot",
+              sender: "assistant",
+              text: initGreeting
+            }
+          ]);
+        });
+      }
+    });
+  }, []);
 
   const suggestions = [
     "Optimize solar storage for the next 48h.",
@@ -68,8 +82,13 @@ function AiConsoleContent() {
   const handleSendQuery = async (textQuery: string) => {
     if (!textQuery.trim()) return;
 
+    const user = getCurrentUser();
+    
+    // Save user message to Convex
+    const userMsgId = await saveChatMessage(user.id, "user", textQuery);
+
     const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
+      id: userMsgId || `msg-${Date.now()}`,
       sender: "user",
       text: textQuery
     };
@@ -93,8 +112,9 @@ function AiConsoleContent() {
         detectedIndustry = "agriculture";
       }
 
-      // Auto-detect city context
-      let detectedLocation = "Seattle";
+      // Auto-detect city context (defaulting to the user's location)
+      const userLocation = user?.location || "Nairobi";
+      let detectedLocation = userLocation;
       if (q.includes("nairobi")) detectedLocation = "Nairobi";
       else if (q.includes("london")) detectedLocation = "London";
       else if (q.includes("paris")) detectedLocation = "Paris";
@@ -110,7 +130,7 @@ function AiConsoleContent() {
           industry: detectedIndustry,
           location: detectedLocation,
           question: textQuery,
-          userId: getCurrentUser().id
+          userId: user.id
         })
       });
 
@@ -132,29 +152,34 @@ function AiConsoleContent() {
         cover: responseData.weather.summary.toLowerCase().includes("cloud") ? "80%" : "15%"
       };
 
-      const botMsg: ChatMessage = {
-        id: `bot-${Date.now()}`,
-        sender: "assistant",
-        card: {
-          summary: `Report compiled for ${responseData.location}:`,
-          recommendation: recommendationText.replace("Direct Answer: ", ""),
-          confidence: responseData.confidence,
-          reasoning: reasoningText,
-          factors: {
-            precip: factors.precip,
-            wind: factors.wind,
-            temp: factors.temp,
-            cover: factors.cover
-          }
+      const botCard = {
+        summary: `Report compiled for ${responseData.location}:`,
+        recommendation: recommendationText.replace("Direct Answer: ", ""),
+        confidence: responseData.confidence,
+        reasoning: reasoningText,
+        factors: {
+          precip: factors.precip,
+          wind: factors.wind,
+          temp: factors.temp,
+          cover: factors.cover
         }
+      };
+
+      // Save bot card response to Convex
+      const botMsgId = await saveChatMessage(user.id, "assistant", undefined, botCard);
+
+      const botMsg: ChatMessage = {
+        id: botMsgId || `bot-${Date.now()}`,
+        sender: "assistant",
+        card: botCard
       };
 
       setMessages((prev) => [...prev, botMsg]);
 
       // Cache locally as well
       const loggedRec: DecisionRecommendation = {
-        id: `rec-${Date.now()}`,
-        userId: getCurrentUser().id,
+        id: responseData.id || `rec-${Date.now()}`,
+        userId: user.id,
         industry: detectedIndustry,
         location: responseData.location,
         question: textQuery,
@@ -172,10 +197,12 @@ function AiConsoleContent() {
       saveRecommendation(loggedRec);
     } catch (error) {
       console.error("AI query execution failed:", error);
+      const botErrorText = "I encountered an error querying the intelligence engine. Please check your API keys and try again.";
+      const botMsgId = await saveChatMessage(user.id, "assistant", botErrorText);
       setMessages((prev) => [...prev, {
-        id: `bot-${Date.now()}`,
+        id: botMsgId || `bot-${Date.now()}`,
         sender: "assistant",
-        text: "I encountered an error querying the intelligence engine. Please check your API keys and try again."
+        text: botErrorText
       }]);
     } finally {
       setLoading(false);

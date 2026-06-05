@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, User, Check, RefreshCw, AlertTriangle, ShieldCheck, Heart } from "lucide-react";
-import { getCurrentUser, setCurrentUser, clearRecommendationHistory } from "@/lib/state";
+import { Settings, User, Check, RefreshCw, AlertTriangle, ShieldCheck, Heart, Sparkles } from "lucide-react";
+import { getCurrentUser, setCurrentUser, syncUserProfile, clearRecommendationHistory } from "@/lib/state";
 import { UserProfile } from "@/types/recommendation";
 import { INDUSTRIES } from "@/lib/industries";
 
@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [location, setLocation] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
@@ -19,18 +20,27 @@ export default function SettingsPage() {
     setUser(activeUser);
     setName(activeUser.name);
     setEmail(activeUser.email);
+    setLocation(activeUser.location || "Nairobi");
     setSelectedIds(activeUser.industries || []);
   }, []);
 
-  const handleToggle = (id: string, isSupported: boolean) => {
-    if (!isSupported) return;
-    
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const handleToggle = (id: string) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      } else {
+        if (prev.length >= 3) {
+          setShowUpgradeModal(true);
+          return prev;
+        }
+        return [...prev, id];
+      }
+    });
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !name || !email) return;
 
@@ -38,9 +48,10 @@ export default function SettingsPage() {
       ...user,
       name,
       email,
-      industries: selectedIds
+      industries: selectedIds,
+      location: location.trim()
     };
-    setCurrentUser(updatedUser);
+    await syncUserProfile(updatedUser);
     setUser(updatedUser);
     
     // Trigger success feedback
@@ -72,13 +83,9 @@ export default function SettingsPage() {
         </section>
 
         <div className="grid md:grid-cols-3 gap-8 items-start">
-          {/* Navigation Panel Menu */}
           <aside className="md:col-span-1 rounded-xl border border-surface-stroke bg-surface-container-low p-4 flex flex-col gap-1">
             <button className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg bg-primary/10 text-primary font-bold text-xs text-label-mono">
               <User className="h-4 w-4" /> Account Profile
-            </button>
-            <button className="flex items-center gap-2.5 w-full text-left px-3 py-2 rounded-lg hover:bg-surface-container-high text-on-surface-variant text-xs text-label-mono">
-              <Settings className="h-4 w-4" /> Preferences
             </button>
           </aside>
 
@@ -96,7 +103,7 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="grid sm:grid-cols-2 gap-4">
+               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-on-surface-variant" htmlFor="name">
                     Profile Username
@@ -121,6 +128,18 @@ export default function SettingsPage() {
                     className="h-10 rounded-lg border border-surface-stroke bg-surface-container-lowest px-3 py-2 text-sm text-on-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 transition-all"
                   />
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant" htmlFor="location">
+                    Default City Location
+                  </label>
+                  <input
+                    id="location"
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="h-10 rounded-lg border border-surface-stroke bg-surface-container-lowest px-3 py-2 text-sm text-on-background focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25 transition-all"
+                  />
+                </div>
               </div>
 
               {/* Connected Sectors */}
@@ -137,28 +156,21 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         key={ind.id}
-                        onClick={() => handleToggle(ind.id, ind.isSupported)}
-                        disabled={!ind.isSupported}
+                        onClick={() => handleToggle(ind.id)}
                         className={`flex items-center justify-between p-3 rounded-lg border text-left transition-all ${
-                          ind.isSupported
-                            ? isSelected
-                              ? "border-primary bg-primary/5 text-on-background hover:bg-primary/10"
-                              : "border-surface-stroke bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant"
-                            : "border-surface-stroke/30 bg-surface-container-lowest opacity-40 cursor-not-allowed"
+                          isSelected
+                            ? "border-primary bg-primary/5 text-on-background hover:bg-primary/10"
+                            : "border-surface-stroke bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant"
                         }`}
                       >
                         <span className="text-xs font-semibold">{ind.title}</span>
-                        {ind.isSupported ? (
-                          <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center ${
-                            isSelected 
-                              ? "border-primary bg-primary text-on-primary" 
-                              : "border-surface-stroke bg-transparent"
-                          }`}>
-                            {isSelected && <Check className="h-3 w-3" />}
-                          </div>
-                        ) : (
-                          <span className="text-[8px] font-semibold text-text-muted uppercase text-label-mono">Soon</span>
-                        )}
+                        <div className={`h-4.5 w-4.5 rounded border flex items-center justify-center ${
+                          isSelected 
+                            ? "border-primary bg-primary text-on-primary" 
+                            : "border-surface-stroke bg-transparent"
+                        }`}>
+                          {isSelected && <Check className="h-3 w-3" />}
+                        </div>
                       </button>
                     );
                   })}
@@ -201,6 +213,46 @@ export default function SettingsPage() {
         </div>
 
       </div>
+
+      {/* Custom Upgrade Package Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-surface-container-low border border-surface-stroke rounded-xl p-6 shadow-2xl flex flex-col gap-5 relative animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Sparkles className="h-5 w-5 animate-pulse" />
+              </div>
+              <div className="flex flex-col gap-1.5 text-left">
+                <h3 className="text-base font-bold text-on-background">Upgrade Active Modules Limit</h3>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  You have reached the maximum limit of <b>3 active industry analysis modules</b> allowed under the standard sandbox profile package. 
+                  <br /><br />
+                  Upgrade your subscription tier to unlock unlimited industry connections, custom weather telemetry, and high-frequency Gemini analysis.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-3 mt-2">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="h-9 px-4 rounded-lg border border-surface-stroke bg-transparent text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={() => {
+                  alert("Upgrade tier request registered! Our sales team will contact you shortly.");
+                  setShowUpgradeModal(false);
+                }}
+                className="h-9 px-4 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-semibold text-xs transition-colors shadow"
+              >
+                Request Upgrade
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -17,5 +17,25 @@ export interface UserProfile {
   name: string;
   email: string;
   industries: string[]; // list of selected industry IDs
+  location?: string; // default location city
   createdAt: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: "user" | "assistant";
+  text?: string;
+  card?: {
+    summary: string;
+    recommendation: string;
+    confidence: number;
+    reasoning: string;
+    factors: {
+      precip: string;
+      wind: string;
+      temp: string;
+      cover: string;
+    };
+  };
+  createdAt?: number;
 }
